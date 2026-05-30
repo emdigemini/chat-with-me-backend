@@ -7,7 +7,13 @@ const chatSchema = new mongoose.Schema({
       ref: 'User',
       required: true
     }
-  ]
+  ],
+  lastMessage: {
+    text: { type: String },
+    senderId: { type: String },
+    createdAt: { type: Date },
+    default: null
+  }
 }, { timestamps: true });
 
 const Chat = mongoose.model('Chat', chatSchema);
