@@ -7,14 +7,22 @@ import CONNECT_DB from "./src/config/db.js";
 import { chatEventController } from "./src/controller/chatController.js";
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://chat-with-me-alpha.vercel.app',
+    'http://localhost:8081',
+  ],
+}));
 app.use(express.json());
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: [
+      'https://chat-with-me-alpha.vercel.app',
+      'http://localhost:8081',
+    ],
     methods: ['GET', 'POST'],
   },
 });
