@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 
 const chatSchema = new mongoose.Schema({
+  chatId: {
+    type: String,
+    required: true
+  },
   participants: [
     {
       type: mongoose.Schema.Types.ObjectId,

@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
+  avatar: {
+    type: String,
+    default: 'https://res.cloudinary.com/dwelbkkok/image/upload/v1780199136/default-avatar-blue.jpg'
+  },
   name: {
     type: String,
     default: `user_${Date.now}`
@@ -23,3 +27,7 @@ const userSchema = new mongoose.Schema({
     default: []
   }
 }, { timestamps: true });
+
+const User = mongoose.model('User', userSchema);
+
+export default User
