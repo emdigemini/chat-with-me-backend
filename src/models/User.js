@@ -7,12 +7,12 @@ const userSchema = new mongoose.Schema({
   },
   name: {
     type: String,
-    default: `user_${Date.now}`
+    default: `user_${Date.now()}`
   },
   gender: {
     type: String,
     enum: ['male', 'female', 'other'],
-    default: 'other',
+    default: '',
   },
   email: {
     type: String,
@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
+    match: [/^\S+@gmail\.com$/, 'Please enter a valid gmail address'],
   },
   chatIDs: {
     type: [String],

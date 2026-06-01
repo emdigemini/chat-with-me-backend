@@ -12,7 +12,7 @@ export const chatEventController = (io, socket) => {
 
 function joinChat(socket) {
   socket.on('join_chat', ({ chatId, userId }) => {
-    const prev = connectedUsers[socket.id];
+    const prev = connectedUsers[socket];
     if (prev?.chatId) {
       socket.leave(prev.chatId);
       console.log(`  User ${prev.userId} left chat ${prev.chatId}`);
