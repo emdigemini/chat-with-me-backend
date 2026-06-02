@@ -21,10 +21,6 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     trim: true,
     match: [/^\S+@gmail\.com$/, 'Please enter a valid gmail address'],
-  },
-  chatIDs: {
-    type: [String],
-    default: []
   }
 }, { timestamps: true });
 
