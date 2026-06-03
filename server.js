@@ -5,6 +5,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import CONNECT_DB from "./src/config/db.js";
 import { chatEventController } from "./src/controller/chatController.js";
+import userRoutes from "./src/routes/userRoutes.js";
 
 const app = express();
 app.use(cors({
@@ -36,6 +37,9 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
+
+// routes
+app.use('/api/user', userRoutes);
 
 (async () => {
   try {
