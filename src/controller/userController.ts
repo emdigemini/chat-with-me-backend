@@ -6,10 +6,10 @@ import sendVerificationCode from "../lib/nodemailer.ts";
 
 export const createAccount = async (req:any, res:any) => {
   try {
-    const { email, password }:{ email:string, password:string } = req.body
+    const { email }:{ email:string } = req.body
     const status = 'create';
 
-    if (!email.trim() || !password.trim())
+    if (!email.trim())
       return res.status(400).json({ message: "All fields are required." });
 
     const existingEmail = await User.findOne({ email });
@@ -30,11 +30,10 @@ export const createAccount = async (req:any, res:any) => {
       message: 'Verification code sent to your email. It will expire in 90 seconds.',
       verify: {
         email,
-        password
       }
     });
   } catch (err) {
-    console.log('500 status error', err);
+    console.log('Error in createAccount controller', err);
     res.status(500).json({ message: "Account creation failed, Internal server error." });
   }
 }
@@ -65,7 +64,7 @@ export const confirmVerificationCode = async (req: any, res: any) => {
 
     res.status(201).json({ message: "Account created successfully!" });
   } catch (err) {
-    console.log('500 status error', err);
+    console.log('Error in confirmVerificationCode controller', err);
     res.status(500).json({ message: "Internal server error." });
   }
 }
