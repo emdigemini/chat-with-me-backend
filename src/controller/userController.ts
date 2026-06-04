@@ -68,3 +68,35 @@ export const confirmVerificationCode = async (req: any, res: any) => {
     res.status(500).json({ message: "Internal server error." });
   }
 }
+
+export const loginAccount = async (req: any, res: any) => {
+  try {
+    const { email, password }:{ email: string, password: string } = req.body;
+
+    if (!email.trim() || !password.trim())
+      return res.status(400).json({ message: "All fields are required." });
+
+    const user = await User.findOne({ email });
+
+    if (!user) 
+      return res.status(401).json({
+        message: "Failed to login, invalid account."
+      });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch)
+      return res.status(401).json({
+        message: "Failed to login, incorrect password."
+      });
+
+    res.status(200).json({
+      message: "Login Successfully!",
+      user
+    });
+
+  } catch (err) {
+    console.log('Error in loginAccount controller', err);
+    res.status(500).json({ message: "Error login, internal server error." });
+  }
+}
