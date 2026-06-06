@@ -150,24 +150,51 @@ export const loginAccount = async (req: any, res: any) => {
     if (!email.trim() || !password.trim())
       return res.status(400).json({ message: "All fields are required." });
 
-    const user = await User.findOne({ email });
+    const userDoc = await User.findOne({ email });
 
-    if (!user) 
+    if (!userDoc) 
       return res.status(401).json({
         message: "Failed to login, invalid account."
       });
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, userDoc.password);
 
     if (!isMatch)
       return res.status(401).json({
         message: "Failed to login, incorrect password."
       });
 
-    res.status(200).json({
-      message: "Login Successfully!",
-      user
+    const user: UserType = {
+      avatar: userDoc?.avatar,
+      name: userDoc?.name,
+      email: userDoc?.email,
+      gender: userDoc?.gender
+    };
+
+    const DAYS = 30;
+     
+    const token = jwt.sign(
+      {id: userDoc._id.toString()},
+      process.env.JWT_SECRET!,
+      {expiresIn: `${DAYS}d`}
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: DAYS * 24 * 60 * 60 * 1000
     });
+    const isMobile = req.headers['x-platform'] === 'mobile';
+
+    if (isMobile) {
+      return res.status(200).json({ message: "Login success.", token, user });
+    } else {
+      return res.status(200).json({
+        message: "Login success.",
+        user 
+      });
+    }
 
   } catch (err) {
     console.log('Error in loginAccount controller', err);
