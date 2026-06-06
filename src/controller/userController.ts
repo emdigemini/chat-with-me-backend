@@ -9,8 +9,11 @@ export const verifyEmail = async (req:any, res:any) => {
     const { email }:{ email:string } = req.body
     const status = 'create';
 
-    if (!email.trim())
+    if (!email || !email.trim())
       return res.status(400).json({ message: "All fields are required." });
+
+    if (!email.toLocaleLowerCase().trim().endsWith("@gmail.com"))
+      return res.status(400).json({ message: "Invalid email. Please use a Gmail address (@gmail.com)." });
 
     const existingEmail = await User.findOne({ email });
     
