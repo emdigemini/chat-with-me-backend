@@ -39,7 +39,31 @@ export const verifyEmail = async (req:any, res:any) => {
     });
   } catch (err) {
     console.log('Error in verifyEmail controller', err);
-    res.status(500).json({ message: "Account creation failed, Internal server error." });
+    res.status(500).json({ message: "Email verification failed, Internal server error." });
+  }
+}
+
+export const confirmEmailVerification = async (req: any, res: any) => {
+  try {
+    const { email, verificationCode }:{ email:string, verificationCode:string } = req.body;
+
+    if (!email.trim())
+      return res.status(400).json({ message: "Empty email address, cannot proceed." });
+
+    if (!verificationCode.trim())
+      return res.status(400).json({ message: "Verification code cannot be empty." });
+    
+    const verified = await VerificationCode.findOne({ email, code: verificationCode });
+    if (!verified)
+      return res.status(401).json({ message: "Invalid verification code." });
+
+    if (new Date() > verified.expiresAt)
+      return res.status(400).json({ message: "Verification code has expired." });
+
+    res.status(200).json({ message: "Email has been verified successfully." });
+  } catch (err) {
+    console.log('Error in confirmEmailVerification controller', err);
+    res.status(500).json({ message: "Verification failed, Internal server error." });
   }
 }
 
@@ -70,7 +94,7 @@ export const createAccount = async (req: any, res: any) => {
     res.status(201).json({ message: "Account created successfully!" });
   } catch (err) {
     console.log('Error in createAccount controller', err);
-    res.status(500).json({ message: "Internal server error." });
+    res.status(500).json({ message: "Account creation failed, Internal server error." });
   }
 }
 
