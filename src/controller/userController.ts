@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import VerificationCode from "../models/VerificationCode.js";
 import sendVerificationCode from "../lib/nodemailer.ts";
 
-export const createAccount = async (req:any, res:any) => {
+export const verifyEmail = async (req:any, res:any) => {
   try {
     const { email }:{ email:string } = req.body
     const status = 'create';
@@ -33,12 +33,12 @@ export const createAccount = async (req:any, res:any) => {
       }
     });
   } catch (err) {
-    console.log('Error in createAccount controller', err);
+    console.log('Error in verifyEmail controller', err);
     res.status(500).json({ message: "Account creation failed, Internal server error." });
   }
 }
 
-export const confirmVerificationCode = async (req: any, res: any) => {
+export const createAccount = async (req: any, res: any) => {
   try {
     const { email, password, verificationCode }:{ email:string, password:string, verificationCode:string } = req.body;
 
@@ -64,7 +64,7 @@ export const confirmVerificationCode = async (req: any, res: any) => {
 
     res.status(201).json({ message: "Account created successfully!" });
   } catch (err) {
-    console.log('Error in confirmVerificationCode controller', err);
+    console.log('Error in createAccount controller', err);
     res.status(500).json({ message: "Internal server error." });
   }
 }

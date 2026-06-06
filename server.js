@@ -13,6 +13,7 @@ app.use(cors({
     'https://chat-with-me-alpha.vercel.app',
     'http://localhost:8081',
   ],
+  credentials: true,
 }));
 app.use(express.json());
 
@@ -25,6 +26,7 @@ const io = new Server(server, {
       'http://localhost:8081',
     ],
     methods: ['GET', 'POST'],
+    credentials: true
   },
 });
 
