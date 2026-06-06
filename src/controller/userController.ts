@@ -17,7 +17,6 @@ export const verifyEmail = async (req:any, res:any) => {
   try {
     const { email }:{ email:string } = req.body
     const status = 'create';
-    console.log(email)
 
     if (!email || !email.trim())
       return res.status(400).json({ message: "All fields are required." });
