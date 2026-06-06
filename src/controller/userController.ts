@@ -6,6 +6,7 @@ import sendVerificationCode from "../lib/nodemailer.ts";
 import jwt from "jsonwebtoken";
 
 type UserType = {
+  id: string,
   avatar: string,
   name: string,
   email: string,
@@ -107,6 +108,7 @@ export const createAccount = async (req: any, res: any) => {
     await EmailVerification.deleteOne({ email });
 
     const user: UserType = {
+      id: userDoc?.id.toString(),
       avatar: userDoc?.avatar,
       name: userDoc?.name,
       email: userDoc?.email,
@@ -165,6 +167,7 @@ export const loginAccount = async (req: any, res: any) => {
       });
 
     const user: UserType = {
+      id: userDoc?.id.toString(),
       avatar: userDoc?.avatar,
       name: userDoc?.name,
       email: userDoc?.email,
