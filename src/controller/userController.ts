@@ -56,13 +56,19 @@ export const confirmEmailVerification = async (req: any, res: any) => {
     const verified = await EmailVerification.findOne({ email, code: verificationCode });
     if (!verified)
       return res.status(401).json({ message: "Invalid verification code." });
-
-    await EmailVerification.findOneAndUpdate({ email, verified: true }, { returnDocument: 'return' });
-
     if (new Date() > verified.expiresAt)
       return res.status(400).json({ message: "Verification code has expired." });
 
-    res.status(200).json({ message: "Email has been verified successfully." });
+    const updatedDoc = await EmailVerification.findOneAndUpdate(
+      { email }, 
+      { verified: true }, 
+      { returnDocument: 'after' }
+    );
+
+    res.status(200).json({
+      message: "Email has been verified successfully.",
+      isVerified: updatedDoc?.verified
+    });
   } catch (err) {
     console.log('Error in confirmEmailVerification controller', err);
     res.status(500).json({ message: "Verification failed, Internal server error." });
