@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const verificationCodeSchema = new mongoose.Schema({
+const verificationEmailSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true
@@ -19,6 +19,6 @@ const verificationCodeSchema = new mongoose.Schema({
   }
 });
 
-const VerificationCode = mongoose.model('VerificationCode', verificationCodeSchema);
+const EmailVerification = mongoose.model('EmailVerification', verificationEmailSchema);
 
-export default VerificationCode; 
+export default EmailVerification; 

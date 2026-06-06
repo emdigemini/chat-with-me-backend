@@ -1,7 +1,7 @@
 import { generateCode } from "../lib/utils.js";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
-import VerificationCode from "../models/VerificationCode.js";
+import EmailVerification from "../models/EmailVerification.js";
 import sendVerificationCode from "../lib/nodemailer.ts";
 
 export const verifyEmail = async (req:any, res:any) => {
@@ -23,7 +23,7 @@ export const verifyEmail = async (req:any, res:any) => {
 
     const verificationCode = generateCode();
     const expiresAt = new Date(Date.now() + 90 * 1000);
-    await VerificationCode.findOneAndUpdate(
+    await EmailVerification.findOneAndUpdate(
       { email },
       { code: verificationCode, expiresAt },
       { upsert: true, returnDocument: "after" }
@@ -53,9 +53,11 @@ export const confirmEmailVerification = async (req: any, res: any) => {
     if (!verificationCode.trim())
       return res.status(400).json({ message: "Verification code cannot be empty." });
     
-    const verified = await VerificationCode.findOne({ email, code: verificationCode });
+    const verified = await EmailVerification.findOne({ email, code: verificationCode });
     if (!verified)
       return res.status(401).json({ message: "Invalid verification code." });
+
+    await EmailVerification.findOneAndUpdate({ email, verified: true }, { returnDocument: 'return' });
 
     if (new Date() > verified.expiresAt)
       return res.status(400).json({ message: "Verification code has expired." });
@@ -79,7 +81,7 @@ export const createAccount = async (req: any, res: any) => {
     if (existingEmail) 
       return res.status(409).json({ message: "Email already exists." });
 
-    const verified = await VerificationCode.findOne({ email, code: verificationCode });
+    const verified = await EmailVerification.findOne({ email, code: verificationCode });
 
     if (!verified)
       return res.status(401).json({ message: "Invalid verification code." });
