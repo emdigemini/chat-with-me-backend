@@ -166,7 +166,7 @@ export const loginAccount = async (req: any, res: any) => {
       });
 
     const user: UserType = {
-      id: userDoc?.id.toString(),
+      id: userDoc?._id.toString(),
       avatar: userDoc?.avatar,
       name: userDoc?.name,
       email: userDoc?.email,
