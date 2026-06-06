@@ -81,13 +81,11 @@ export const createAccount = async (req: any, res: any) => {
     if (existingEmail) 
       return res.status(409).json({ message: "Email already exists." });
 
-    const verified = await EmailVerification.findOne({ email, code: verificationCode });
+    const checkEmail = await EmailVerification.findOne({ email });
+    const isVerified = checkEmail?.verified;
 
-    if (!verified)
+    if (!isVerified)
       return res.status(401).json({ message: "Invalid verification code." });
-
-    if (new Date() > verified.expiresAt)
-      return res.status(400).json({ message: "Verification code has expired." });
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
