@@ -108,7 +108,7 @@ export const createAccount = async (req: any, res: any) => {
     await EmailVerification.deleteOne({ email });
 
     const user: UserType = {
-      id: userDoc?.id.toString(),
+      id: userDoc?._id.toString(),
       avatar: userDoc?.avatar,
       name: userDoc?.name,
       email: userDoc?.email,
