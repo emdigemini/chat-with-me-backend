@@ -3,6 +3,14 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import EmailVerification from "../models/EmailVerification.js";
 import sendVerificationCode from "../lib/nodemailer.ts";
+import jwt from "jsonwebtoken";
+
+type UserType = {
+  avatar: string,
+  name: string,
+  email: string,
+  gender: string
+}
 
 export const verifyEmail = async (req:any, res:any) => {
   try {
@@ -79,7 +87,7 @@ export const createAccount = async (req: any, res: any) => {
   try {
     const { email, password }:{ email:string, password:string } = req.body;
 
-    if (!email.trim() || !password.trim())
+    if (!email?.trim() || !password?.trim())
       return res.status(400).json({ message: "All fields are required." });
 
     const existingEmail = await User.findOne({ email });
@@ -95,9 +103,40 @@ export const createAccount = async (req: any, res: any) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await User.create({ email, password: hashedPassword });
+    const userDoc = await User.create({ email, password: hashedPassword });
+    await EmailVerification.deleteOne({ email });
+    
+    const user: UserType = {
+      avatar: userDoc?.avatar,
+      name: userDoc?.name,
+      email: userDoc?.email,
+      gender: userDoc?.gender
+    };
 
-    res.status(201).json({ message: "Account created successfully!" });
+    const DAYS = 30;
+     
+    const token = jwt.sign(
+      {id: userDoc._id.toString()},
+      process.env.JWT_SECRET!,
+      {expiresIn: `${DAYS}d`}
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: DAYS * 24 * 60 * 60 * 1000
+    });
+    const isMobile = req.headers['x-platform'] === 'mobile';
+
+    if (isMobile) {
+      return res.status(200).json({ message: "Account created successfully!", token, user });
+    } else {
+      return res.status(200).json({
+        message: "Account created successfully!",
+        user 
+      });
+    }
   } catch (err) {
     console.log('Error in createAccount controller', err);
     res.status(500).json({ message: "Account creation failed, Internal server error." });
