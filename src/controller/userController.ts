@@ -71,7 +71,7 @@ export const confirmEmailVerification = async (req: any, res: any) => {
 
 export const createAccount = async (req: any, res: any) => {
   try {
-    const { email, password, verificationCode }:{ email:string, password:string, verificationCode:string } = req.body;
+    const { email, password }:{ email:string, password:string } = req.body;
 
     if (!email.trim() || !password.trim())
       return res.status(400).json({ message: "All fields are required." });
@@ -85,7 +85,7 @@ export const createAccount = async (req: any, res: any) => {
     const isVerified = checkEmail?.verified;
 
     if (!isVerified)
-      return res.status(401).json({ message: "Invalid verification code." });
+      return res.status(401).json({ message: "Email not verified. Please complete the account verification process first." });
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
