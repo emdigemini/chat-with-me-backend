@@ -53,15 +53,15 @@ export const verifyEmail = async (req:any, res:any) => {
 
 export const confirmEmailVerification = async (req: any, res: any) => {
   try {
-    const { email, verificationCode }:{ email:string, verificationCode:string } = req.body;
+    const { email, code }:{ email:string, code:string } = req.body;
 
-    if (!email.trim())
+    if (!email?.trim())
       return res.status(400).json({ message: "Empty email address, cannot proceed." });
 
-    if (!verificationCode.trim())
+    if (!code?.trim())
       return res.status(400).json({ message: "Verification code cannot be empty." });
     
-    const verified = await EmailVerification.findOne({ email, code: verificationCode });
+    const verified = await EmailVerification.findOne({ email, code });
     if (!verified)
       return res.status(401).json({ message: "Invalid verification code." });
     if (new Date() > verified.expiresAt)
@@ -85,9 +85,9 @@ export const confirmEmailVerification = async (req: any, res: any) => {
 
 export const createAccount = async (req: any, res: any) => {
   try {
-    const { email, password }:{ email:string, password:string } = req.body;
+    const { email, password, confirmPassword }:{ email:string, password:string, confirmPassword:string } = req.body;
 
-    if (!email?.trim() || !password?.trim())
+    if (!email?.trim() || !password?.trim() || !confirmPassword?.trim())
       return res.status(400).json({ message: "All fields are required." });
 
     const existingEmail = await User.findOne({ email });
@@ -105,7 +105,7 @@ export const createAccount = async (req: any, res: any) => {
 
     const userDoc = await User.create({ email, password: hashedPassword });
     await EmailVerification.deleteOne({ email });
-    
+
     const user: UserType = {
       avatar: userDoc?.avatar,
       name: userDoc?.name,
