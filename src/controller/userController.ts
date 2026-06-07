@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import EmailVerification from "../models/EmailVerification.js";
 import sendVerificationCode from "../lib/nodemailer.ts";
 import jwt from "jsonwebtoken";
+import { Request, Response } from "express";
 
 type UserType = {
   id: string,
@@ -201,5 +202,27 @@ export const loginAccount = async (req: any, res: any) => {
   } catch (err) {
     console.log('Error in loginAccount controller', err);
     res.status(500).json({ message: "Error login, internal server error." });
+  }
+}
+
+export const getCurrentUser = async (req: Request, res: Response) => {
+  try {
+    const userDoc = await User.findById(req.user.id);
+
+    if(!userDoc)
+      return res.status(404).json({ message: "Cannot verify token, account not found." });
+
+    const user: UserType = {
+      id: userDoc?._id.toString(),
+      avatar: userDoc?.avatar,
+      name: userDoc?.name,
+      email: userDoc?.email,
+      gender: userDoc?.gender
+    };
+
+    res.status(200).json({ user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 }
