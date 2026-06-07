@@ -201,7 +201,22 @@ export const loginAccount = async (req: any, res: any) => {
 
   } catch (err) {
     console.log('Error in loginAccount controller', err);
-    res.status(500).json({ message: "Error login, internal server error." });
+    res.status(500).json({ message: "Failed to login, internal server error." });
+  }
+}
+
+export const logoutAccount = async (_: any, res: Response) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax"
+    });
+    
+    res.status(200).json({ message: "Logged out" });
+  } catch (err) {
+    console.log('Error in logoutAccount controller', err);
+    res.status(500).json({ message: "Failed to logout, internal server error." });
   }
 }
 
