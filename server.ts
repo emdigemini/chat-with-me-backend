@@ -6,6 +6,7 @@ import cors from "cors";
 import CONNECT_DB from "./src/config/db.ts";
 import { chatEventController } from "./src/controller/chatController.ts";
 import userRoutes from "./src/routes/userRoutes.ts";
+import cookieParser from "cookie-parser";
 
 const app = express();
 app.use(cors({
@@ -15,7 +16,10 @@ app.use(cors({
   ],
   credentials: true,
 }));
+
+// middleware
 app.use(express.json());
+app.use(cookieParser());
 
 const server = http.createServer(app);
 
