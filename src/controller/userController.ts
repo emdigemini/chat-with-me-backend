@@ -1,7 +1,7 @@
-import { generateCode } from "../lib/utils.js";
-import User from "../models/User.js";
+import { generateCode } from "../lib/utils.ts";
+import User from "../models/User.ts";
 import bcrypt from "bcryptjs";
-import EmailVerification from "../models/EmailVerification.js";
+import EmailVerification from "../models/EmailVerification.ts";
 import sendVerificationCode from "../lib/nodemailer.ts";
 import jwt from "jsonwebtoken";
 import { Request, Response } from "express";

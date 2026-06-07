@@ -3,9 +3,9 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-import CONNECT_DB from "./src/config/db.js";
-import { chatEventController } from "./src/controller/chatController.js";
-import userRoutes from "./src/routes/userRoutes.js";
+import CONNECT_DB from "./src/config/db.ts";
+import { chatEventController } from "./src/controller/chatController.ts";
+import userRoutes from "./src/routes/userRoutes.ts";
 
 const app = express();
 app.use(cors({
@@ -34,8 +34,8 @@ const io = new Server(server, {
 io.on('connection', (socket) => chatEventController(io, socket));
 
 // Simple health-check endpoint
-app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'Chat server is running' });
+app.get('/', (_, res) => {
+  res.json({ status: 'ok', message: 'server is now running...' });
 });
 
 const PORT = process.env.PORT || 3001;
