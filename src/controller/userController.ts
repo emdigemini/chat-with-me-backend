@@ -254,12 +254,20 @@ export const changeGender = async (req: Request, res: Response) => {
     if (!validGenders.includes(newGender.trim().toLowerCase()))
       return res.status(400).json({ message: "Invalid gender, cannot change." });
       
-    const user = await User.findByIdAndUpdate(id, 
+    const userDoc = await User.findByIdAndUpdate(id, 
       { gender: newGender },
       { returnDocument: 'after' }
     );
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!userDoc) return res.status(404).json({ message: "User not found" });
+
+    const user: UserType = {
+      id: userDoc?._id.toString(),
+      avatar: userDoc?.avatar,
+      name: userDoc?.name,
+      email: userDoc?.email,
+      gender: userDoc?.gender
+    };
 
     res.status(200).json({ user });
   } catch (err) {
