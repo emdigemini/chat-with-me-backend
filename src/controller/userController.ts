@@ -244,6 +244,36 @@ export const getCurrentUser = async (req: Request, res: Response) => {
 
 // update value
 
+export const changeName = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+    const { newName }: { newName: string } = req.body;
+
+    if (!newName.trim())
+      return res.status(400).json({ message: "Name cannot leave empty." });
+
+    const userDoc = await User.findByIdAndUpdate(id, 
+      { name: newName },
+      { returnDocument: 'after' }
+    ); 
+
+    if (!userDoc) return res.status(404).json({ message: "User not found" });
+
+    const user: UserType = {
+      id: userDoc?._id.toString(),
+      avatar: userDoc?.avatar,
+      name: userDoc?.name,
+      email: userDoc?.email,
+      gender: userDoc?.gender
+    };
+
+    res.status(200).json({ user });
+  } catch (err) {
+    console.log('Error in changeName controller', err);
+    res.status(500).json({ message: "Failed to change name, internal server error." });
+  }
+}
+
 export const changeGender = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: string };
@@ -272,6 +302,6 @@ export const changeGender = async (req: Request, res: Response) => {
     res.status(200).json({ user });
   } catch (err) {
     console.log('Error in changeGender controller', err);
-    res.status(500).json({ message: "Failed to logout, internal server error." });
+    res.status(500).json({ message: "Failed to change gender, internal server error." });
   }
 }
