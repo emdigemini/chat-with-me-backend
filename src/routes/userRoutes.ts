@@ -10,6 +10,6 @@ router.post('/create-account', createAccount);
 router.post('/login-account', loginAccount);
 router.post('/logout-account', logoutAccount);
 router.get('/check-auth', authentication, getCurrentUser);
-router.put('change-gender', changeGender);
+router.put('change-gender/:id', changeGender);
 
 export default router
