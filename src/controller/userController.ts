@@ -241,3 +241,29 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error" });
   }
 }
+
+// update value
+
+export const changeGender = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+    const { newGender }:{ newGender: string } = req.body;
+
+    const validGenders = ["male", "female", "other"];
+
+    if (!validGenders.includes(newGender.trim().toLowerCase()))
+      return res.status(400).json({ message: "Invalid gender, cannot change." });
+      
+    const user = await User.findByIdAndUpdate(id, 
+      { gender: newGender },
+      { returnDocument: 'after' }
+    );
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json({ user });
+  } catch (err) {
+    console.log('Error in changeGender controller', err);
+    res.status(500).json({ message: "Failed to logout, internal server error." });
+  }
+}
