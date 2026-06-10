@@ -1,7 +1,21 @@
-const messagesByChat = {};
-const connectedUsers = {};
+import { Server, Socket  } from "socket.io";
 
-export const chatEventController = (io, socket) => {
+interface Message {
+  id: string;
+  senderId: string;
+  text: string;
+  time: string;
+}
+
+interface ConnectedUser {
+  userId: string;
+  chatId: string;
+}
+
+const messagesByChat: Record<string, Message[]> = {};
+const connectedUsers: Record<string, ConnectedUser> = {};
+
+export const chatEventController = (io: Server, socket: Socket) => {
   console.log(`[+] Socket connected: ${socket.id}`);
 
   joinChat(socket);
@@ -10,9 +24,9 @@ export const chatEventController = (io, socket) => {
   disconnectChat(socket);
 }
 
-function joinChat(socket) {
-  socket.on('join_chat', ({ chatId, userId }) => {
-    const prev = connectedUsers[socket];
+function joinChat(socket: Socket) {
+  socket.on('join_chat', ({ chatId, userId }: { chatId: string, userId: string }) => {
+    const prev = connectedUsers[socket.id];
     if (prev?.chatId) {
       socket.leave(prev.chatId);
       console.log(`  User ${prev.userId} left chat ${prev.chatId}`);
@@ -27,8 +41,8 @@ function joinChat(socket) {
   });
 }
 
-function sendMessage(io, socket) {
-  socket.on('send_message', ({ chatId, senderId, text }) => {
+function sendMessage(io: Server, socket: Socket) {
+  socket.on('send_message', ({ chatId, senderId, text }: { chatId: string, senderId: string, text: string }) => {
     if (!chatId || !senderId || !text?.trim()) return;
 
     const message = {
@@ -47,13 +61,13 @@ function sendMessage(io, socket) {
   });
 }
 
-function isTyping(socket) {
-  socket.on('typing', ({ chatId, userId, isTyping }) => {
+function isTyping(socket: Socket) {
+  socket.on('typing', ({ chatId, userId, isTyping }: { chatId: string, userId: string, isTyping: boolean }) => {
     socket.to(chatId).emit('user_typing', { userId, isTyping });
   });
 }
 
-function disconnectChat(socket) {
+function disconnectChat(socket: Socket) {
   socket.on('disconnect', () => {
     const user = connectedUsers[socket.id];
     if (user) {

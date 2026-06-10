@@ -37,7 +37,7 @@ const io = new Server(server, {
 // connect socket to server
 io.on('connection', (socket) => chatEventController(io, socket));
 
-// Simple health-check endpoint
+// simple health-check endpoint
 app.get('/', (_, res) => {
   res.json({ status: 'ok', message: 'server is now running...' });
 });
