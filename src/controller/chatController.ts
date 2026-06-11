@@ -1,5 +1,6 @@
 import { Server, Socket  } from "socket.io";
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import User from "../models/User";
 import Chat from "../models/Chat";
 
@@ -29,10 +30,11 @@ export const chatEventController = (io: Server, socket: Socket) => {
 
 function joinChat(socket: Socket) {
   socket.on('join_chat', async ({ chatId, userId }: { chatId: string, userId: string }) => {
+
     const hasAccessToChat = await Chat.findOne({
       chatId,
       participants: userId
-    })
+    });
 
     if (!hasAccessToChat) {
       socket.emit("error", {
@@ -42,6 +44,7 @@ function joinChat(socket: Socket) {
     }
 
     const prev = connectedUsers[socket.id];
+
     if (prev?.chatId) {
       socket.leave(prev.chatId);
       console.log(`  User ${prev.userId} left chat ${prev.chatId}`);
@@ -78,6 +81,7 @@ function sendMessage(io: Server, socket: Socket) {
 
 function isTyping(socket: Socket) {
   socket.on('typing', ({ chatId, userId, isTyping }: { chatId: string, userId: string, isTyping: boolean }) => {
+    console.log('chatId: ', chatId)
     socket.to(chatId).emit('user_typing', { userId, isTyping });
   });
 }
