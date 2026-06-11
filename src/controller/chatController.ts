@@ -121,7 +121,10 @@ export const addNewChat = async (req: Request, res: Response) => {
     const isChatExists = await Chat.findOne({ chatId });
 
     if (isChatExists)
-      return res.status(409).json({ message: "You already have an existing conversation with this user." });
+      return res.status(409).json({ 
+        message: "You already have an existing conversation with this user.",
+        chat: isChatExists
+      });
 
     const chat = await Chat.create({ chatId, participants });
 
