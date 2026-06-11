@@ -124,15 +124,27 @@ export const addNewChat = async (req: Request, res: Response) => {
     if (isChatExists)
       return res.status(409).json({ 
         message: "You already have an existing conversation with this user.",
-        chat: isChatExists
+        chat: {
+          id: isChatExists?._id.toString(),
+          chatId: isChatExists?.chatId,
+          participants: isChatExists?.participants,
+          lastMessage: isChatExists?.lastMessage
+        }
       });
 
     const newChat = await Chat.create({ chatId, participants })
 
-    const chat = await Chat.findById(newChat._id)
+    const chatDoc = await Chat.findById(newChat._id)
       .populate("participants");
 
-    res.status(201).json({ chat });
+    res.status(201).json({
+      chat: {
+        id: chatDoc?._id.toString(),
+        chatId: chatDoc?.chatId,
+        participants: chatDoc?.participants,
+        lastMessage: chatDoc?.lastMessage
+      }
+    });
   } catch (err) {
     console.log('Error in addNewChat controller', err);
     res.status(500).json({ message: "Failed to connect with host, internal server error." });

@@ -13,18 +13,21 @@ const chatSchema = new mongoose.Schema({
     }
   ],
   lastMessage: {
-    text: { type: String },
-    createdAt: { type: Date },
-    sentBy: {
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: 'User',
-      default: null
+    type: {
+      text: { type: String },
+      createdAt: { type: Date },
+      sentBy: {
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User',
+        default: null
+      },
+      seenBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+      },
     },
-    seenBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: null
-    },
+    default: null
   }
 }, { timestamps: true });
 
