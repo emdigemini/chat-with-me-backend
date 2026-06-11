@@ -98,7 +98,10 @@ export const getChats = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: string };
 
-    const chatDocs = await Chat.find({ participants: id });
+    const chatDocs = await Chat.find({ participants: id })
+      .populate("participants", "_id name")
+      .populate("lastMessage.sentBy", "_id name")
+      .populate("lastMessage.seenBy", "_id name");
 
     res.status(200).json({
       chats: chatDocs.map(chat => ({
