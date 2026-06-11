@@ -1,4 +1,7 @@
 import { Server, Socket  } from "socket.io";
+import { Request, Response } from "express";
+import User from "../models/User";
+import Chat from "../models/Chat";
 
 interface Message {
   id: string;
@@ -77,4 +80,42 @@ function disconnectChat(socket: Socket) {
       console.log(`[-] Socket disconnected: ${socket.id}`);
     }
   });
+}
+
+export const addNewChat = async (req: Request, res: Response) => {
+  try {
+    const { hostId, guestId }: { hostId: string, guestId: string } = req.body;
+
+    if (!hostId?.trim() || !guestId?.trim()) 
+      return res.status(400).json({ message: "Please provide a valid invite ID." });
+
+    if (hostId === guestId)
+      return res.status(400).json({
+        message: "You cannot create a conversation with yourself."
+      });
+
+    const isHostExists = await User.findById(hostId);
+    const isGuestExists = await User.findById(guestId);
+
+    if (!isHostExists) 
+      return res.status(404).json({ message: "No user found with the provided invite ID." });
+
+    if (!isGuestExists) 
+      return res.status(404).json({ message: "Cannot connect to the host. Your user ID is invalid." });
+
+    const participants = [hostId, guestId];
+    const chatId = participants.sort().join("_");
+
+    const isChatExists = await Chat.findOne({ chatId });
+
+    if (isChatExists)
+      return res.status(409).json({ message: "You already have an existing conversation with this user." });
+
+    const chat = await Chat.create({ chatId, participants });
+
+    res.status(201).json({ chat });
+  } catch (err) {
+    console.log('Error in addNewChat controller', err);
+    res.status(500).json({ message: "Failed to connect with host, internal server error." });
+  }
 }

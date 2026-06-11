@@ -25,7 +25,6 @@ const chatSchema = new mongoose.Schema({
       ref: 'User',
       default: null
     },
-    default: null
   }
 }, { timestamps: true });
 
