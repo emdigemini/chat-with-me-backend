@@ -94,6 +94,26 @@ function disconnectChat(socket: Socket) {
   });
 }
 
+export const getChats = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+
+    const chatDocs = await Chat.find({ participants: id });
+
+    res.status(200).json({
+      chats: chatDocs.map(chat => ({
+        id: chat._id.toString(),
+        chatId: chat.chatId,
+        participants: chat.participants,
+        lastMessage: chat.lastMessage
+      }))
+    })
+  } catch (err) { 
+    console.log('Error in getChats controller', err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+}
+
 export const addNewChat = async (req: Request, res: Response) => {
   try {
     const { hostId, guestId }: { hostId: string, guestId: string } = req.body;
