@@ -118,7 +118,8 @@ export const addNewChat = async (req: Request, res: Response) => {
     const participants = [hostId, guestId];
     const chatId = participants.sort().join("_");
 
-    const isChatExists = await Chat.findOne({ chatId });
+    const isChatExists = await Chat.findOne({ chatId })
+      .populate("participants");
 
     if (isChatExists)
       return res.status(409).json({ 
@@ -126,7 +127,10 @@ export const addNewChat = async (req: Request, res: Response) => {
         chat: isChatExists
       });
 
-    const chat = await Chat.create({ chatId, participants });
+    const newChat = await Chat.create({ chatId, participants })
+
+    const chat = await Chat.findById(newChat._id)
+      .populate("participants");
 
     res.status(201).json({ chat });
   } catch (err) {
