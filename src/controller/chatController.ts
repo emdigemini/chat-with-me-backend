@@ -28,7 +28,19 @@ export const chatEventController = (io: Server, socket: Socket) => {
 }
 
 function joinChat(socket: Socket) {
-  socket.on('join_chat', ({ chatId, userId }: { chatId: string, userId: string }) => {
+  socket.on('join_chat', async ({ chatId, userId }: { chatId: string, userId: string }) => {
+    const hasAccessToChat = await Chat.findOne({
+      chatId,
+      participants: userId
+    })
+
+    if (!hasAccessToChat) {
+      socket.emit("error", {
+        message: "You do not have access to this chat."
+      });
+      return;
+    }
+
     const prev = connectedUsers[socket.id];
     if (prev?.chatId) {
       socket.leave(prev.chatId);
