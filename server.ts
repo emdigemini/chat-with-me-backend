@@ -8,6 +8,8 @@ import { chatEventController } from "./src/controller/chatController.ts";
 import cookieParser from "cookie-parser";
 import userRoutes from "./src/routes/userRoutes.ts";
 import chatRoutes from "./src/routes/chatRoutes.ts";
+import cookie from "cookie";
+import jwt from "jsonwebtoken";
 
 const app = express();
 app.use(cors({
@@ -21,6 +23,10 @@ app.use(cors({
 // middleware
 app.use(express.json());
 app.use(cookieParser());
+
+// routes
+app.use('/api/user', userRoutes);
+app.use('/api/chat', chatRoutes);
 
 const server = http.createServer(app);
 
@@ -36,6 +42,24 @@ const io = new Server(server, {
 });
 
 // connect socket to server
+io.use((socket, next) => {
+  const cookies = socket.handshake.headers.cookie;
+
+  if (!cookies) return next(new Error('No cookies, access denied'));
+
+  const { token } = cookie.parse(cookies);
+
+  if (!token) return next(new Error('No token, access denied'));
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string; [key: string]: any };
+    socket.data.userId = decoded.id;
+    next();
+  } catch (err) {
+    next(new Error('Invalid token'));
+  }
+});
+
 io.on('connection', (socket) => chatEventController(io, socket));
 
 // simple health-check endpoint
@@ -44,10 +68,6 @@ app.get('/', (_, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-
-// routes
-app.use('/api/user', userRoutes);
-app.use('/api/chat', chatRoutes);
 
 (async () => {
   try {

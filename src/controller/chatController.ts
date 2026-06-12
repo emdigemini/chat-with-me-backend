@@ -30,50 +30,56 @@ export const chatEventController = (io: Server, socket: Socket) => {
 }
 
 function joinChat(socket: Socket) {
-  socket.on('join_chat', async ({ chatId, userId }: { chatId: string, userId: string }) => {
-
-    const hasAccessToChat = await Chat.findOne({
-      _id: chatId,
-      participants: userId
-    });
-
-    if (!hasAccessToChat) {
-      socket.emit("error", {
-        message: "You do not have access to this chat."
+  socket.on('join_chat', async ({ chatId }: { chatId: string }) => {
+    try {
+      const userId = socket.data.userId;
+      const hasAccessToChat = await Chat.findOne({
+        _id: chatId,
+        participants: userId
       });
-      return;
-    }
 
-    const prev = connectedUsers[socket.id];
-
-    if (prev?.chatId) {
-      socket.leave(prev.chatId);
-      console.log(`  User ${prev.userId} left chat ${prev.chatId}`);
-    }
-
-    socket.join(chatId);
-    connectedUsers[socket.id] = { userId, chatId };
-    // console.log(`  User ${userId} joined chat ${chatId}`);
-
-    const msgDoc = await Message.find({ chatId })
-      .sort({ createdAt: 1 }).limit(20).lean();
-
-    const history = msgDoc?.map(m => {
-      return {
-        id: m._id,
-        chatId: m.chatId,
-        senderId: m.senderId,
-        message: m.message,
-        time: m.createdAt
+      if (!hasAccessToChat) {
+        socket.emit("error", {
+          message: "You do not have access to this chat."
+        });
+        return;
       }
-    });
 
-    socket.emit('chat_history', history);
+      const prev = connectedUsers[socket.id];
+
+      if (prev?.chatId) {
+        socket.leave(prev.chatId);
+        console.log(`  User ${prev.userId} left chat ${prev.chatId}`);
+      }
+
+      socket.join(chatId);
+      connectedUsers[socket.id] = { userId, chatId };
+      // console.log(`  User ${userId} joined chat ${chatId}`);
+
+      const msgDoc = await Message.find({ chatId })
+        .sort({ createdAt: -1 }).limit(20).lean();
+
+      const history = msgDoc?.map(m => {
+        return {
+          id: m._id,
+          chatId: m.chatId,
+          senderId: m.senderId,
+          message: m.message,
+          time: m.createdAt
+        }
+      });
+
+      socket.emit('chat_history', history);
+    } catch (err) {
+      console.error('Error connecting to a chat:', err);
+      socket.emit('error_chat', { message: 'Failed to connect with chat' });
+    }
   });
 }
 
 function sendMessage(io: Server, socket: Socket) {
-  socket.on('send_message', async ({ chatId, senderId, text }: { chatId: string, senderId: string, text: string }) => {
+  socket.on('send_message', async ({ chatId, text }: { chatId: string, text: string }) => {
+    const senderId = socket.data.userId;
     if (!chatId || !senderId || !text?.trim()) {
       socket.emit('error_message', { message: 'Invalid message data' });
       return;
@@ -103,8 +109,8 @@ function sendMessage(io: Server, socket: Socket) {
 }
 
 function isTyping(socket: Socket) {
-  socket.on('typing', ({ chatId, userId, isTyping }: { chatId: string, userId: string, isTyping: boolean }) => {
-    console.log('chatId: ', chatId)
+  socket.on('typing', ({ chatId, isTyping }: { chatId: string, isTyping: boolean }) => {
+    const userId = socket.data.userId;
     socket.to(chatId).emit('user_typing', { userId, isTyping });
   });
 }
