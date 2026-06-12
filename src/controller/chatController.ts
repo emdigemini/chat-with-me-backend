@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import User from "../models/User";
 import Chat from "../models/Chat";
+import Message from "../models/Message";
 
 interface Message {
   id: string;
@@ -32,7 +33,7 @@ function joinChat(socket: Socket) {
   socket.on('join_chat', async ({ chatId, userId }: { chatId: string, userId: string }) => {
 
     const hasAccessToChat = await Chat.findOne({
-      chatId,
+      _id: chatId,
       participants: userId
     });
 
@@ -52,30 +53,52 @@ function joinChat(socket: Socket) {
 
     socket.join(chatId);
     connectedUsers[socket.id] = { userId, chatId };
-    console.log(`  User ${userId} joined chat ${chatId}`);
+    // console.log(`  User ${userId} joined chat ${chatId}`);
 
-    const history = messagesByChat[chatId] || [];
+    const msgDoc = await Message.find({ chatId })
+      .sort({ createdAt: 1 }).limit(20).lean();
+
+    const history = msgDoc?.map(m => {
+      return {
+        id: m._id,
+        chatId: m.chatId,
+        senderId: m.senderId,
+        message: m.message,
+        time: m.createdAt
+      }
+    });
+
     socket.emit('chat_history', history);
   });
 }
 
 function sendMessage(io: Server, socket: Socket) {
-  socket.on('send_message', ({ chatId, senderId, text }: { chatId: string, senderId: string, text: string }) => {
-    if (!chatId || !senderId || !text?.trim()) return;
+  socket.on('send_message', async ({ chatId, senderId, text }: { chatId: string, senderId: string, text: string }) => {
+    if (!chatId || !senderId || !text?.trim()) {
+      socket.emit('error_message', { message: 'Invalid message data' });
+      return;
+    }
 
-    const message = {
-      id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      senderId,
-      text: text.trim(),
-      time: new Date().toISOString(),
-    };
+    try {
+      const msgDoc = await Message.create({
+        chatId, senderId, message: text.trim()
+      });
 
-    if (!messagesByChat[chatId]) messagesByChat[chatId] = [];
-    messagesByChat[chatId].push(message);
+      const message = {
+        id: msgDoc._id,
+        chatId: msgDoc.chatId,
+        senderId: msgDoc.senderId,
+        message: msgDoc.message,
+        time: msgDoc.createdAt
+      };
 
-    console.log(`  [Chat: ${chatId}] ${senderId}: ${text}`);
+      console.log(`[Chat: ${chatId}] ${senderId}: ${text}`);
 
-    io.to(chatId).emit('new_message', message);
+      io.to(chatId).emit('new_message', message);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      socket.emit('error_message', { message: 'Failed to send message' });
+    }
   });
 }
 
@@ -98,6 +121,9 @@ function disconnectChat(socket: Socket) {
   });
 }
 
+// __________________________________________________________________
+// create new chat and fetch all chats_______________________________
+// __________________________________________________________________
 export const getChats = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: string };
@@ -177,3 +203,4 @@ export const addNewChat = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to connect with host, internal server error." });
   }
 }
+
