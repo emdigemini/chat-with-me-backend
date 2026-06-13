@@ -22,7 +22,7 @@ const chatSchema = new mongoose.Schema({
         default: null
       },
       seenBy: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: [mongoose.Schema.Types.ObjectId],
         ref: 'User',
         default: null
       },

@@ -23,6 +23,7 @@ export const chatEventController = (io: Server, socket: Socket) => {
   console.log(`[+] Socket connected: ${socket.id}`);
 
   joinChat(socket);
+  messagesSeen(io, socket);
   loadMoreMessages(socket);
   sendMessage(io, socket);
   isTyping(socket);
@@ -30,7 +31,7 @@ export const chatEventController = (io: Server, socket: Socket) => {
 }
 
 function joinChat(socket: Socket) {
-  socket.on('join_chat', async ({ chatId }: { chatId: string }) => {
+  socket.on('join_chat', async ({ chatId, seenId }: { chatId: string, seenId: string }) => {
     try {
       const userId = socket.data.userId;
       const hasAccessToChat = await Chat.findOne({
@@ -64,6 +65,7 @@ function joinChat(socket: Socket) {
           id: m._id,
           chatId: m.chatId,
           senderId: m.senderId,
+          seenby: m.seenBy,
           message: m.message,
           time: m.createdAt
         }
@@ -75,6 +77,25 @@ function joinChat(socket: Socket) {
       socket.emit('error_chat', { message: 'Failed to connect with chat' });
     }
   });
+}
+
+function messagesSeen(io: Server, socket: Socket) {
+  socket.on("messages_seen", async ({ chatId }: { chatId: string }) => {
+    const userId = socket.data.userId;
+    await Message.updateMany(
+      {
+        chatId,
+        senderId: { $ne: userId }
+      }, {
+        $addToSet: { seenBy: userId }
+      }
+    );
+
+    io.to(chatId).emit('messages_seen', {
+      chatId,
+      userId
+    });
+  })
 }
 
 function loadMoreMessages(socket: Socket) {
@@ -104,6 +125,7 @@ function loadMoreMessages(socket: Socket) {
         id: m._id.toString(),
         chatId: m.chatId,
         senderId: m.senderId,
+        seenby: m.seenBy,
         message: m.message,
         time: m.createdAt
       }));
@@ -144,10 +166,18 @@ function sendMessage(io: Server, socket: Socket) {
         chatId, senderId, message: text.trim()
       });
 
+      await Chat.findByIdAndUpdate(chatId, {
+        lastMessage: {
+          text: msgDoc.message,
+          sentBy: msgDoc.senderId,
+        }
+      });
+
       const message = {
         id: msgDoc._id,
         chatId: msgDoc.chatId,
         senderId: msgDoc.senderId,
+        seenby: msgDoc.seenBy,
         message: msgDoc.message,
         time: msgDoc.createdAt
       };
