@@ -17,13 +17,13 @@ interface ConnectedUser {
   chatId: string;
 }
 
-const messagesByChat: Record<string, Message[]> = {};
 const connectedUsers: Record<string, ConnectedUser> = {};
 
 export const chatEventController = (io: Server, socket: Socket) => {
   console.log(`[+] Socket connected: ${socket.id}`);
 
   joinChat(socket);
+  loadMoreMessages(socket);
   sendMessage(io, socket);
   isTyping(socket);
   disconnectChat(socket);
@@ -59,7 +59,7 @@ function joinChat(socket: Socket) {
       const msgDoc = await Message.find({ chatId })
         .sort({ createdAt: -1 }).limit(20).lean();
 
-      const history = msgDoc?.map(m => {
+      const history = msgDoc.reverse().map(m => {
         return {
           id: m._id,
           chatId: m.chatId,
@@ -73,6 +73,48 @@ function joinChat(socket: Socket) {
     } catch (err) {
       console.error('Error connecting to a chat:', err);
       socket.emit('error_chat', { message: 'Failed to connect with chat' });
+    }
+  });
+}
+
+function loadMoreMessages(socket: Socket) {
+  socket.on('load_more_messages', async ({ chatId, before }: { chatId: string; before: string }) => {
+    try {
+      const userId = socket.data.userId;
+
+      const hasAccessToChat = await Chat.findOne({
+        _id: chatId,
+        participants: userId
+      });
+
+      if (!hasAccessToChat) {
+        socket.emit("error", { message: "You do not have access to this chat." });
+        return;
+      }
+
+      const msgDoc = await Message.find({
+        chatId,
+        createdAt: { $lt: new Date(before) }
+      })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
+
+      const history = msgDoc.reverse().map(m => ({
+        id: m._id.toString(),
+        chatId: m.chatId,
+        senderId: m.senderId,
+        message: m.message,
+        time: m.createdAt
+      }));
+
+      socket.emit('more_messages', {
+        messages: history,
+        hasMore: msgDoc.length === 20
+      });
+    } catch (err) {
+      console.error('Error loading more messages:', err);
+      socket.emit('error_message', { message: 'Failed to load more messages' });
     }
   });
 }
