@@ -97,7 +97,7 @@ function loadMoreMessages(socket: Socket) {
         createdAt: { $lt: new Date(before) }
       })
         .sort({ createdAt: -1 })
-        .limit(20)
+        .limit(10)
         .lean();
 
       const history = msgDoc.reverse().map(m => ({
@@ -110,7 +110,7 @@ function loadMoreMessages(socket: Socket) {
 
       socket.emit('more_messages', {
         messages: history,
-        hasMore: msgDoc.length === 20
+        hasMore: msgDoc.length === 10
       });
     } catch (err) {
       console.error('Error loading more messages:', err);
