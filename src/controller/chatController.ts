@@ -65,7 +65,7 @@ function joinChat(socket: Socket) {
           id: m._id,
           chatId: m.chatId,
           senderId: m.senderId,
-          seenby: m.seenBy,
+          seenBy: m.seenBy,
           message: m.message,
           time: m.createdAt
         }
@@ -90,11 +90,8 @@ function messagesSeen(io: Server, socket: Socket) {
         $addToSet: { seenBy: userId }
       }
     );
-
-    io.to(chatId).emit('messages_seen', {
-      chatId,
-      userId
-    });
+    
+    io.to(chatId).emit('messages_seen', { chatId, userId });
   })
 }
 
@@ -125,7 +122,7 @@ function loadMoreMessages(socket: Socket) {
         id: m._id.toString(),
         chatId: m.chatId,
         senderId: m.senderId,
-        seenby: m.seenBy,
+        seenBy: m.seenBy,
         message: m.message,
         time: m.createdAt
       }));
@@ -177,7 +174,7 @@ function sendMessage(io: Server, socket: Socket) {
         id: msgDoc._id,
         chatId: msgDoc.chatId,
         senderId: msgDoc.senderId,
-        seenby: msgDoc.seenBy,
+        seenBy: msgDoc.seenBy,
         message: msgDoc.message,
         time: msgDoc.createdAt
       };
