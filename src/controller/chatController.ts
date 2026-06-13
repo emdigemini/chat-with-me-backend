@@ -82,6 +82,7 @@ function joinChat(socket: Socket) {
 function messagesSeen(io: Server, socket: Socket) {
   socket.on("messages_seen", async ({ chatId }: { chatId: string }) => {
     const userId = socket.data.userId;
+    console.log(userId)
     await Message.updateMany(
       {
         chatId,
@@ -163,12 +164,25 @@ function sendMessage(io: Server, socket: Socket) {
         chatId, senderId, message: text.trim()
       });
 
-      await Chat.findByIdAndUpdate(chatId, {
+      const chatDocs = await Chat.findByIdAndUpdate(chatId, {
         lastMessage: {
           text: msgDoc.message,
           sentBy: msgDoc.senderId,
         }
-      });
+      }, { new: true })
+      .populate("participants", "_id name")
+      .populate("lastMessage.sentBy", "_id name")
+      .populate("lastMessage.seenBy", "_id name");
+
+      let chats;
+      if (chatDocs) {
+        chats = {
+          id: chatDocs._id.toString(),
+          chatId: chatDocs.chatId,
+          participants: chatDocs.participants,
+          lastMessage: chatDocs.lastMessage
+        }
+      }
 
       const message = {
         id: msgDoc._id,
@@ -181,7 +195,7 @@ function sendMessage(io: Server, socket: Socket) {
 
       console.log(`[Chat: ${chatId}] ${senderId}: ${text}`);
 
-      io.to(chatId).emit('new_message', message);
+      io.to(chatId).emit('new_message', { message, chats });
     } catch (err) {
       console.error('Error sending message:', err);
       socket.emit('error_message', { message: 'Failed to send message' });
