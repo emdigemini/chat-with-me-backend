@@ -1,6 +1,6 @@
 import { Server, Socket  } from "socket.io";
 import { Request, Response } from "express";
-import mongoose from "mongoose";
+import { messageRateLimit } from "../config/upstash";
 import User from "../models/User";
 import Chat from "../models/Chat";
 import Message from "../models/Message";
@@ -128,6 +128,18 @@ function sendMessage(io: Server, socket: Socket) {
     }
 
     try {
+      const { success, reset } = await messageRateLimit.limit(`${senderId},${chatId}`);
+
+      if (!success) {
+        const seconds = Math.ceil((reset - Date.now()) / 1000);
+
+        socket.emit("error_message", {
+          message: `You're sending messages too quickly. Try again in ${seconds}s.`,
+        });
+
+        return;
+      }
+
       const msgDoc = await Message.create({
         chatId, senderId, message: text.trim()
       });

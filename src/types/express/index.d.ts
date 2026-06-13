@@ -3,6 +3,9 @@ declare global {
     interface Request {
       user?: any;
     }
+    interface User {
+      token?: string;
+    }
   }
 }
 
