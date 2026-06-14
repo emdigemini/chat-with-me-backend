@@ -224,7 +224,7 @@ function disconnectChat(socket: Socket) {
 
 export async function getNewMessages(req: Request, res: Response) {
   try {
-    const { id } = req.body as { id: string[] };
+    const { id } = req.params as { id: string[] };
 
     const newMsgDocs = await Message.find({
       chatId: { $in: id },
