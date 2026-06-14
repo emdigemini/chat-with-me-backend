@@ -224,7 +224,9 @@ function disconnectChat(socket: Socket) {
 
 export async function getNewMessages(req: Request, res: Response) {
   try {
-    const { id } = req.params as { id: string[] };
+    const id = req.query['[id]'] as string[];
+
+    console.log(req.query)
 
     const newMsgDocs = await Message.find({
       chatId: { $in: id },
@@ -255,7 +257,7 @@ export async function getNewMessages(req: Request, res: Response) {
 // __________________________________________________________________
 export const getChats = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params as { id: string };
+    const { id } = req.body as { id: string };
 
     const chatDocs = await Chat.find({ participants: id })
       .populate("participants", "_id name")
