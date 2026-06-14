@@ -73,7 +73,7 @@ function joinChat(socket: Socket) {
       const msgDoc = await Message.find({ chatId })
         .sort({ createdAt: -1 }).limit(20).lean();
 
-      const history = msgDoc.reverse().map(m => {
+      const history = msgDoc.map(m => {
         return {
           id: m._id,
           chatId: m.chatId,
@@ -95,7 +95,6 @@ function joinChat(socket: Socket) {
 function messagesSeen(io: Server, socket: Socket) {
   socket.on("messages_seen", async ({ chatId }: { chatId: string }) => {
     const userId = socket.data.userId;
-    console.log(userId)
     await Message.updateMany(
       {
         chatId,
