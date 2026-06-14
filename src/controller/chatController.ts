@@ -177,26 +177,6 @@ function sendMessage(io: Server, socket: Socket) {
         chatId, senderId, message: text.trim()
       });
 
-      const chatDocs = await Chat.findByIdAndUpdate(chatId, {
-        lastMessage: {
-          text: msgDoc.message,
-          sentBy: msgDoc.senderId,
-        }
-      }, { new: true })
-      .populate("participants", "_id name")
-      .populate("lastMessage.sentBy", "_id name")
-      .populate("lastMessage.seenBy", "_id name");
-
-      let chats;
-      if (chatDocs) {
-        chats = {
-          id: chatDocs._id.toString(),
-          chatId: chatDocs.chatId,
-          participants: chatDocs.participants,
-          lastMessage: chatDocs.lastMessage
-        }
-      }
-
       const message = {
         id: msgDoc._id,
         chatId: msgDoc.chatId,
@@ -208,7 +188,7 @@ function sendMessage(io: Server, socket: Socket) {
 
       console.log(`new message in: ${chatId}`);
 
-      io.to(chatId).emit('new_message', { message, chats });
+      io.to(chatId).emit('new_message', { message });
     } catch (err) {
       console.error('Error sending message:', err);
       socket.emit('error_message', { message: 'Failed to send message' });
@@ -229,16 +209,15 @@ function disconnectChat(socket: Socket) {
   });
 }
 
-export async function getNewMessages(req: Request, res: Response) {
+export async function getLatestMessage(req: Request, res: Response) {
   try {
     const { id } = req.body as { id: string[] };
 
-    const newMsgDocs = await Message.find({
-      chatId: { $in: id },
-      seenBy: []
+    const msgDocs = await Message.find({
+      chatId: { $in: id }
     }).sort({ createdAt: -1 });
 
-    const messages = newMsgDocs.map((m) => {
+    const messages = msgDocs.reverse().map((m) => {
       return {
         id: m._id.toString(),
         chatId: m.chatId,
@@ -248,7 +227,7 @@ export async function getNewMessages(req: Request, res: Response) {
         time: m.createdAt
       }
     });
-    
+
     res.status(200).json({ messages });
   } catch (err) {
     console.log('Error in getNewMessages controller', err);
