@@ -244,15 +244,12 @@ export const getChats = async (req: Request, res: Response) => {
 
     const chatDocs = await Chat.find({ participants: id })
       .populate("participants", "_id name")
-      .populate("lastMessage.sentBy", "_id name")
-      .populate("lastMessage.seenBy", "_id name");
 
     res.status(200).json({
       chats: chatDocs.map(chat => ({
         id: chat._id.toString(),
         chatId: chat.chatId,
         participants: chat.participants,
-        lastMessage: chat.lastMessage
       }))
     })
   } catch (err) { 
@@ -295,7 +292,6 @@ export const addNewChat = async (req: Request, res: Response) => {
           id: isChatExists?._id.toString(),
           chatId: isChatExists?.chatId,
           participants: isChatExists?.participants,
-          lastMessage: isChatExists?.lastMessage
         }
       });
 
@@ -309,7 +305,6 @@ export const addNewChat = async (req: Request, res: Response) => {
         id: chatDoc?._id.toString(),
         chatId: chatDoc?.chatId,
         participants: chatDoc?.participants,
-        lastMessage: chatDoc?.lastMessage
       }
     });
   } catch (err) {
