@@ -222,6 +222,34 @@ function disconnectChat(socket: Socket) {
   });
 }
 
+export async function getNewMessages(req: Request, res: Response) {
+  try {
+    const { id } = req.body as { id: string[] };
+
+    const newMsgDocs = await Message.find({
+      chatId: { $in: id },
+      seenBy: []
+    });
+
+    const messages = newMsgDocs.map((m) => {
+      return {
+        id: m._id.toString(),
+        chatId: m.chatId,
+        senderId: m.senderId,
+        seenBy: m.seenBy,
+        message: m.message,
+        time: m.createdAt
+      }
+    });
+    
+    res.status(200).json({ messages });
+  } catch (err) {
+    console.log('Error in getNewMessages controller', err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+}
+
+
 // __________________________________________________________________
 // create new chat and fetch all chats_______________________________
 // __________________________________________________________________
