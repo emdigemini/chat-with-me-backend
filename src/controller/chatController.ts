@@ -22,6 +22,7 @@ const connectedUsers: Record<string, ConnectedUser> = {};
 export const chatEventController = (io: Server, socket: Socket) => {
   console.log(`[+] Socket connected: ${socket.id}`);
 
+  connectUser(socket);
   joinChat(socket);
   messagesSeen(io, socket);
   loadMoreMessages(socket);
@@ -30,8 +31,31 @@ export const chatEventController = (io: Server, socket: Socket) => {
   disconnectChat(socket);
 }
 
+function connectUser(socket: Socket) {
+  socket.on('join_user', async ({ userId }: { userId: string }) => {
+    try {
+      const userId = socket.data.userId;
+      const chats = await Chat.find({ participants: userId });
+
+      if (chats.length === 0)
+        return socket.emit("error", {
+          message: "No active conversations found."
+        })
+
+      chats.forEach((chat) => {
+        socket.join(chat._id.toString());
+        console.log("user: ", userId, " connected to: ", chat._id.toString());
+      });
+      socket.emit("connected_user");
+    } catch (err) {
+      console.error('Error connecting user:', err);
+      socket.emit('error_chat', { message: 'Failed to connect with user' });
+    }
+  })
+}
+
 function joinChat(socket: Socket) {
-  socket.on('join_chat', async ({ chatId, seenId }: { chatId: string, seenId: string }) => {
+  socket.on('join_chat', async ({ chatId }: { chatId: string; }) => {
     try {
       const userId = socket.data.userId;
       const hasAccessToChat = await Chat.findOne({
@@ -45,17 +69,6 @@ function joinChat(socket: Socket) {
         });
         return;
       }
-
-      const prev = connectedUsers[socket.id];
-
-      if (prev?.chatId) {
-        socket.leave(prev.chatId);
-        console.log(`  User ${prev.userId} left chat ${prev.chatId}`);
-      }
-
-      socket.join(chatId);
-      connectedUsers[socket.id] = { userId, chatId };
-      // console.log(`  User ${userId} joined chat ${chatId}`);
 
       const msgDoc = await Message.find({ chatId })
         .sort({ createdAt: -1 }).limit(20).lean();
@@ -193,7 +206,7 @@ function sendMessage(io: Server, socket: Socket) {
         time: msgDoc.createdAt
       };
 
-      console.log(`[Chat: ${chatId}] ${senderId}: ${text}`);
+      console.log(`new message in: ${chatId}`);
 
       io.to(chatId).emit('new_message', { message, chats });
     } catch (err) {
@@ -212,13 +225,7 @@ function isTyping(socket: Socket) {
 
 function disconnectChat(socket: Socket) {
   socket.on('disconnect', () => {
-    const user = connectedUsers[socket.id];
-    if (user) {
-      console.log(`[-] User ${user.userId} disconnected from chat ${user.chatId}`);
-      delete connectedUsers[socket.id];
-    } else {
-      console.log(`[-] Socket disconnected: ${socket.id}`);
-    }
+    console.log(`[-] Socket disconnected: ${socket.id}`);
   });
 }
 
@@ -229,7 +236,7 @@ export async function getNewMessages(req: Request, res: Response) {
     const newMsgDocs = await Message.find({
       chatId: { $in: id },
       seenBy: []
-    });
+    }).sort({ createdAt: -1 });
 
     const messages = newMsgDocs.map((m) => {
       return {
@@ -248,7 +255,6 @@ export async function getNewMessages(req: Request, res: Response) {
     res.status(500).json({ message: "Internal server error." });
   }
 }
-
 
 // __________________________________________________________________
 // create new chat and fetch all chats_______________________________
