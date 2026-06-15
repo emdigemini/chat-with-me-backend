@@ -45,9 +45,14 @@ const io = new Server(server, {
 io.use((socket, next) => {
   const cookies = socket.handshake.headers.cookie;
 
-  if (!cookies) return next(new Error('No cookies, access denied'));
+ if (!cookies) {
+    console.log("NO COOKIES");
+    return next(new Error("No cookies"));
+  }
 
   const { token } = cookie.parse(cookies);
+
+  console.log("TOKEN:", token);
 
   if (!token) return next(new Error('No token, access denied'));
 
