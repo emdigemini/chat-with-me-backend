@@ -52,8 +52,6 @@ io.use((socket, next) => {
 
   const { token } = cookie.parse(cookies);
 
-  console.log("TOKEN:", token);
-
   if (!token) return next(new Error('No token, access denied'));
 
   try {
