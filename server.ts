@@ -14,7 +14,7 @@ import jwt from "jsonwebtoken";
 const app = express();
 app.use(cors({
   origin: [
-    'https://chat-with-me-alpha.vercel.app',
+    'https://chat-with-me-dev.vercel.app',
     'http://localhost:8081',
   ],
   credentials: true,
@@ -33,7 +33,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [
-      'https://chat-with-me-alpha.vercel.app',
+      'https://chat-with-me-dev.vercel.app',
       'http://localhost:8081',
     ],
     methods: ['GET', 'POST'],
