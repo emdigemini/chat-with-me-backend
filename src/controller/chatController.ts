@@ -32,7 +32,7 @@ export const chatEventController = (io: Server, socket: Socket) => {
 }
 
 function connectUser(socket: Socket) {
-  socket.on('join_user', async ({ userId }: { userId: string }) => {
+  socket.on('join_user', async () => {
     try {
       const userId = socket.data.userId;
       const chats = await Chat.find({ participants: userId });
@@ -98,11 +98,12 @@ function messagesSeen(io: Server, socket: Socket) {
     await Message.updateMany(
       {
         chatId,
-        senderId: { $ne: userId }
       }, {
         $addToSet: { seenBy: userId }
       }
     );
+
+    console.log(userId)
     
     io.to(chatId).emit('messages_seen', { chatId, userId });
   })
