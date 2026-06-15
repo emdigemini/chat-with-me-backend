@@ -126,7 +126,7 @@ export const createAccount = async (req: any, res: any) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "none",
       maxAge: DAYS * 24 * 60 * 60 * 1000
     });
     const isMobile = req.headers['x-platform'] === 'mobile';
@@ -185,7 +185,7 @@ export const loginAccount = async (req: any, res: any) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "none",
       maxAge: DAYS * 24 * 60 * 60 * 1000
     });
     const isMobile = req.headers['x-platform'] === 'mobile';
