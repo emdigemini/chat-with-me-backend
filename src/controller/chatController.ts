@@ -285,7 +285,7 @@ export const addNewChat = async (req: Request, res: Response) => {
     const isChatExists = await Chat.findOne({ chatId })
       .populate("participants", "_id name");
 
-    if (isChatExists)
+    if (isChatExists) {
       return res.status(409).json({ 
         message: "You already have an existing conversation with this user.",
         chat: {
@@ -294,7 +294,8 @@ export const addNewChat = async (req: Request, res: Response) => {
           participants: isChatExists?.participants,
         }
       });
-
+    }
+      
     const newChat = await Chat.create({ chatId, participants })
 
     const chatDoc = await Chat.findById(newChat._id)
