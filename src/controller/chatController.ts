@@ -22,6 +22,7 @@ const connectedUsers: Record<string, ConnectedUser> = {};
 export const chatEventController = (io: Server, socket: Socket) => {
   console.log(`[+] Socket connected: ${socket.id}`);
 
+  createNewChat(io, socket);
   connectUser(socket);
   joinChat(socket);
   messagesSeen(io, socket);
@@ -31,16 +32,71 @@ export const chatEventController = (io: Server, socket: Socket) => {
   disconnectChat(socket);
 }
 
+function createNewChat(io: Server, socket: Socket) {
+  socket.on("request_new_chat", async ({ hostId }) => {
+    try {
+      const guestId = socket.data.userId;
+      
+      if (!hostId?.trim() || !guestId?.trim()) 
+        return socket.emit("error_chat", { message: "Please provide a valid invite ID." });
+
+      if (hostId === guestId)
+        return socket.emit("error_chat", {
+          message: "You cannot create a conversation with yourself."
+        });
+
+      const isHostExists = await User.findById(hostId);
+      const isGuestExists = await User.findById(guestId);
+
+      if (!isHostExists) 
+        return socket.emit("error_chat", { message: "No user found with the provided invite ID." });
+
+      if (!isGuestExists) 
+        return socket.emit("error_chat", { message: "Cannot connect to the host. Your user ID is invalid." });
+
+      const participants = [hostId, guestId];
+      const chatId = participants.sort().join("_");
+
+      const isChatExists = await Chat.findOne({ chatId })
+        .populate("participants", "_id name");
+
+      if (isChatExists) {
+        return socket.emit("", { 
+          message: "You already have an existing conversation with this user.",
+          chat: {
+            id: isChatExists?._id.toString(),
+            chatId: isChatExists?.chatId,
+            participants: isChatExists?.participants,
+          }
+        });
+      }
+        
+      const newChat = await Chat.create({ chatId, participants })
+
+      const chatDoc = await Chat.findById(newChat._id)
+        .populate("participants", "_id name");
+      const chat = {
+        id: chatDoc?._id.toString(),
+        chatId: chatDoc?.chatId,
+        participants: chatDoc?.participants,
+      }
+
+      socket.emit("new_chat", { chat });
+      io.to(hostId).emit("new_chat", { chat });
+    } catch (err) {
+      console.error('Error requesting for new chat:', err);
+      socket.emit('error_chat', { message: 'Failed to connect with user' });
+    }
+  })
+}
+
 function connectUser(socket: Socket) {
   socket.on('join_user', async () => {
     try {
       const userId = socket.data.userId;
-      const chats = await Chat.find({ participants: userId });
+      socket.join(userId);
 
-      if (chats.length === 0)
-        return socket.emit("error", {
-          message: "No active conversations found."
-        })
+      const chats = await Chat.find({ participants: userId });
 
       chats.forEach((chat) => {
         socket.join(chat._id.toString());
@@ -132,7 +188,7 @@ function loadMoreMessages(socket: Socket) {
         .limit(10)
         .lean();
 
-      const history = msgDoc.reverse().map(m => ({
+      const history = msgDoc.map(m => ({
         id: m._id.toString(),
         chatId: m.chatId,
         senderId: m.senderId,
@@ -185,8 +241,6 @@ function sendMessage(io: Server, socket: Socket) {
         message: msgDoc.message,
         time: msgDoc.createdAt
       };
-
-      console.log(`new message in: ${chatId}`);
 
       io.to(chatId).emit('new_message', { message });
     } catch (err) {
@@ -257,60 +311,3 @@ export const getChats = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error." });
   }
 }
-
-export const addNewChat = async (req: Request, res: Response) => {
-  try {
-    const { hostId, guestId }: { hostId: string, guestId: string } = req.body;
-
-    if (!hostId?.trim() || !guestId?.trim()) 
-      return res.status(400).json({ message: "Please provide a valid invite ID." });
-
-    if (hostId === guestId)
-      return res.status(400).json({
-        message: "You cannot create a conversation with yourself."
-      });
-
-    const isHostExists = await User.findById(hostId);
-    const isGuestExists = await User.findById(guestId);
-
-    if (!isHostExists) 
-      return res.status(404).json({ message: "No user found with the provided invite ID." });
-
-    if (!isGuestExists) 
-      return res.status(404).json({ message: "Cannot connect to the host. Your user ID is invalid." });
-
-    const participants = [hostId, guestId];
-    const chatId = participants.sort().join("_");
-
-    const isChatExists = await Chat.findOne({ chatId })
-      .populate("participants", "_id name");
-
-    if (isChatExists) {
-      return res.status(409).json({ 
-        message: "You already have an existing conversation with this user.",
-        chat: {
-          id: isChatExists?._id.toString(),
-          chatId: isChatExists?.chatId,
-          participants: isChatExists?.participants,
-        }
-      });
-    }
-      
-    const newChat = await Chat.create({ chatId, participants })
-
-    const chatDoc = await Chat.findById(newChat._id)
-      .populate("participants", "_id name");
-
-    res.status(201).json({
-      chat: {
-        id: chatDoc?._id.toString(),
-        chatId: chatDoc?.chatId,
-        participants: chatDoc?.participants,
-      }
-    });
-  } catch (err) {
-    console.log('Error in addNewChat controller', err);
-    res.status(500).json({ message: "Failed to connect with host, internal server error." });
-  }
-}
-
