@@ -40,11 +40,6 @@ function createNewChat(io: Server, socket: Socket) {
       if (!hostId?.trim() || !guestId?.trim()) 
         return socket.emit("error_chat", { message: "Please provide a valid invite ID." });
 
-      if (hostId === guestId)
-        return socket.emit("error_chat", {
-          message: "You cannot create a conversation with yourself."
-        });
-
       const isHostExists = await User.findById(hostId);
       const isGuestExists = await User.findById(guestId);
 
@@ -159,8 +154,6 @@ function messagesSeen(io: Server, socket: Socket) {
       }
     );
 
-    console.log(userId)
-    
     io.to(chatId).emit('messages_seen', { chatId, userId });
   })
 }
