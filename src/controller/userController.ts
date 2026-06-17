@@ -2,7 +2,7 @@ import { generateCode } from "../lib/utils.ts";
 import User from "../models/User.ts";
 import bcrypt from "bcryptjs";
 import EmailVerification from "../models/EmailVerification.ts";
-import sendVerificationCode from "../lib/brevo.js";
+// import sendVerificationCode from "../lib/brevo.js";
 import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
 
@@ -17,7 +17,6 @@ type UserType = {
 export const verifyEmail = async (req:any, res:any) => {
   try {
     const { email }:{ email:string } = req.body
-    const status = 'create';
 
     if (!email || !email.trim())
       return res.status(400).json({ message: "All fields are required." });
@@ -30,20 +29,20 @@ export const verifyEmail = async (req:any, res:any) => {
     if (existingEmail) 
       return res.status(409).json({ message: "Email already exists." });
 
-    const verificationCode = generateCode();
-    const expiresAt = new Date(Date.now() + 90 * 1000);
-    await EmailVerification.findOneAndUpdate(
-      { email },
-      { code: verificationCode, expiresAt },
-      { upsert: true, returnDocument: "after" }
-    );
-    sendVerificationCode(status, email, verificationCode);
+    // const verificationCode = generateCode();
+    // const expiresAt = new Date(Date.now() + 90 * 1000);
+    // await EmailVerification.findOneAndUpdate(
+    //   { email },
+    //   { code: verificationCode, expiresAt },
+    //   { upsert: true, returnDocument: "after" }
+    // );
+    // sendVerificationCode(email, verificationCode);
 
     res.json({ 
-      message: 'Verification code sent to your email. It will expire in 90 seconds.',
+      // message: 'Verification code sent to your email. It will expire in 90 seconds.',
       verify: {
         email,
-        expiresAt
+        // expiresAt
       }
     });
   } catch (err) {
@@ -96,11 +95,11 @@ export const createAccount = async (req: any, res: any) => {
     if (existingEmail) 
       return res.status(409).json({ message: "Email already exists." });
 
-    const checkEmail = await EmailVerification.findOne({ email });
-    const isVerified = checkEmail?.verified;
+    // const checkEmail = await EmailVerification.findOne({ email });
+    // const isVerified = checkEmail?.verified;
 
-    if (!isVerified)
-      return res.status(401).json({ message: "Email not verified. Please complete the account verification process first." });
+    // if (!isVerified)
+    //   return res.status(401).json({ message: "Email not verified. Please complete the account verification process first." });
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
