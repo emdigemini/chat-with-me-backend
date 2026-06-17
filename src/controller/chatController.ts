@@ -49,7 +49,7 @@ function createNewChat(io: Server, socket: Socket) {
       if (!isGuestExists) 
         return socket.emit("error_chat", { message: "Cannot connect to the host. Your user ID is invalid." });
 
-      const participants = [hostId, guestId];
+      const participants = [...new Set([hostId, guestId])];
       const chatId = participants.sort().join("_");
 
       const isChatExists = await Chat.findOne({ chatId })
@@ -66,7 +66,7 @@ function createNewChat(io: Server, socket: Socket) {
         });
       }
         
-      const newChat = await Chat.create({ chatId, participants })
+      const newChat = await Chat.create({ chatId, participants, lastMessage: guestId })
 
       const chatDoc = await Chat.findById(newChat._id)
         .populate("participants", "_id name");
@@ -222,6 +222,17 @@ function sendMessage(io: Server, socket: Socket) {
         return;
       }
 
+      const chatDoc = await Chat.findByIdAndUpdate(chatId,
+        { lastMessage: senderId },
+        { returnDocument: 'after' })
+        .populate("participants", "_id name");
+
+      const chat = {
+        id: chatDoc?._id.toString(),
+        chatId: chatDoc?.chatId,
+        participants: chatDoc?.participants,
+      }
+
       const msgDoc = await Message.create({
         chatId, senderId, message: text.trim()
       });
@@ -235,7 +246,7 @@ function sendMessage(io: Server, socket: Socket) {
         time: msgDoc.createdAt
       };
 
-      io.to(chatId).emit('new_message', { message });
+      io.to(chatId).emit('new_message', { message, chat });
     } catch (err) {
       console.error('Error sending message:', err);
       socket.emit('error_message', { message: 'Failed to send message' });
@@ -290,7 +301,7 @@ export const getChats = async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
 
     const chatDocs = await Chat.find({ participants: id })
-      .populate("participants", "_id name")
+      .populate("participants", "_id name").sort({ updatedAt: -1 });
 
     res.status(200).json({
       chats: chatDocs.map(chat => ({
@@ -298,7 +309,7 @@ export const getChats = async (req: Request, res: Response) => {
         chatId: chat.chatId,
         participants: chat.participants,
       }))
-    })
+    });
   } catch (err) { 
     console.log('Error in getChats controller', err);
     res.status(500).json({ message: "Internal server error." });
