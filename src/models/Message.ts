@@ -7,7 +7,7 @@ const messageSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-  senderId: {
+  sentBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
@@ -22,6 +22,11 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
+  },
+  replyTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message',
+    default: null
   }
 }, { timestamps: true });
 

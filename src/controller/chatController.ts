@@ -20,8 +20,6 @@ interface ConnectedUser {
 const connectedUsers: Record<string, ConnectedUser> = {};
 
 export const chatEventController = (io: Server, socket: Socket) => {
-  console.log(`[+] Socket connected: ${socket.id}`);
-
   createNewChat(io, socket);
   connectUser(socket);
   joinChat(socket);
@@ -95,7 +93,6 @@ function connectUser(socket: Socket) {
 
       chats.forEach((chat) => {
         socket.join(chat._id.toString());
-        console.log("user: ", userId, " connected to: ", chat._id.toString());
       });
       socket.emit("connected_user");
     } catch (err) {
@@ -122,16 +119,26 @@ function joinChat(socket: Socket) {
       }
 
       const msgDoc = await Message.find({ chatId })
-        .sort({ createdAt: -1 }).limit(20).lean();
+        .sort({ createdAt: -1 }).limit(20)
+        .populate("sentBy", "_id name")
+        .populate({
+          path: "replyTo",
+          select: "_id message sentBy",
+          populate: {
+            path: "sentBy",
+            select: "_id name"
+          }
+        }).lean();
 
       const history = msgDoc.map(m => {
         return {
           id: m._id,
           chatId: m.chatId,
-          senderId: m.senderId,
+          sentBy: m.sentBy,
           seenBy: m.seenBy,
           message: m.message,
-          time: m.createdAt
+          time: m.createdAt,
+          replyTo: m.replyTo
         }
       });
 
@@ -177,17 +184,25 @@ function loadMoreMessages(socket: Socket) {
         chatId,
         createdAt: { $lt: new Date(before) }
       })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .lean();
+        .sort({ createdAt: -1 }).limit(10)
+        .populate("sentBy", "_id name")
+        .populate({
+          path: "replyTo",
+          select: "_id message sentBy",
+          populate: {
+            path: "sentBy",
+            select: "_id name"
+          }
+        }).lean();
 
       const history = msgDoc.map(m => ({
         id: m._id.toString(),
         chatId: m.chatId,
-        senderId: m.senderId,
+        sentBy: m.sentBy,
         seenBy: m.seenBy,
         message: m.message,
-        time: m.createdAt
+        time: m.createdAt,
+        replyTo: m.replyTo
       }));
 
       socket.emit('more_messages', {
@@ -202,7 +217,7 @@ function loadMoreMessages(socket: Socket) {
 }
 
 function sendMessage(io: Server, socket: Socket) {
-  socket.on('send_message', async ({ chatId, text }: { chatId: string, text: string }) => {
+  socket.on('send_message', async ({ chatId, text, replyTo }: { chatId: string, text: string, replyTo: string }) => {
     const senderId = socket.data.userId;
     if (!chatId || !senderId || !text?.trim()) {
       socket.emit('error_message', { message: 'Invalid message data' });
@@ -234,16 +249,27 @@ function sendMessage(io: Server, socket: Socket) {
       }
 
       const msgDoc = await Message.create({
-        chatId, senderId, message: text.trim()
+        chatId, sentBy: senderId, message: text.trim(), replyTo
+      });
+
+      await msgDoc.populate("sentBy", "_id name");
+      await msgDoc.populate({
+        path: "replyTo",
+        select: "_id message sentBy",
+        populate: {
+          path: "sentBy",
+          select: "_id name"
+        }
       });
 
       const message = {
         id: msgDoc._id,
         chatId: msgDoc.chatId,
-        senderId: msgDoc.senderId,
+        sentBy: msgDoc.sentBy,
         seenBy: msgDoc.seenBy,
         message: msgDoc.message,
-        time: msgDoc.createdAt
+        time: msgDoc.createdAt,
+        replyTo: msgDoc.replyTo
       };
 
       io.to(chatId).emit('new_message', { message, chat });
@@ -263,26 +289,27 @@ function isTyping(socket: Socket) {
 
 function disconnectChat(socket: Socket) {
   socket.on('disconnect', () => {
-    console.log(`[-] Socket disconnected: ${socket.id}`);
   });
 }
 
 export async function getLatestMessage(req: Request, res: Response) {
   try {
-    const { id } = req.body as { id: string[] };
+    const { id } = req.body as { id: string[] };  
 
     const msgDocs = await Message.find({
       chatId: { $in: id }
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 })
+    .populate("sentBy", "_id name");
 
     const messages = msgDocs.reverse().map((m) => {
       return {
         id: m._id.toString(),
         chatId: m.chatId,
-        senderId: m.senderId,
+        sentBy: m.sentBy,
         seenBy: m.seenBy,
         message: m.message,
-        time: m.createdAt
+        time: m.createdAt,
+        replyTo: m.replyTo
       }
     });
 
