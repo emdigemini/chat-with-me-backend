@@ -247,7 +247,7 @@ function sendMessage(io: Server, socket: Socket) {
         return;
       }
 
-      const latestMessage = { userId: senderId, message: text };
+      const latestMessage = { userId: senderId, text };
 
       const chatDoc = await Chat.findByIdAndUpdate(
         chatId,
