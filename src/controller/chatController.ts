@@ -53,13 +53,22 @@ function createNewChat(io: Server, socket: Socket) {
       const isChatExists = await Chat.findOne({ chatId })
         .populate("participants", "_id name");
 
+      
+
       if (isChatExists) {
+        const lastMsg = {
+          userId: isChatExists?.lastMessage?.userId,
+          text: isChatExists?.lastMessage?.text,
+          time: isChatExists?.updatedAt,
+        }
+
         return socket.emit("", { 
           message: "You already have an existing conversation with this user.",
           chat: {
             id: isChatExists?._id.toString(),
             chatId: isChatExists?.chatId,
             participants: isChatExists?.participants,
+            lastMessage: lastMsg || null
           }
         });
       }
@@ -72,6 +81,7 @@ function createNewChat(io: Server, socket: Socket) {
         id: chatDoc?._id.toString(),
         chatId: chatDoc?.chatId,
         participants: chatDoc?.participants,
+        lastMessage: chatDoc?.lastMessage,
       }
 
       socket.emit("new_chat", { chat });
@@ -237,15 +247,25 @@ function sendMessage(io: Server, socket: Socket) {
         return;
       }
 
-      const chatDoc = await Chat.findByIdAndUpdate(chatId,
-        { lastMessage: senderId },
+      const latestMessage = { userId: senderId, message: text };
+
+      const chatDoc = await Chat.findByIdAndUpdate(
+        chatId,
+        { lastMessage: latestMessage },
         { returnDocument: 'after' })
         .populate("participants", "_id name");
+
+      const lastMsg = {
+        userId: chatDoc?.lastMessage?.userId,
+        text: chatDoc?.lastMessage?.text,
+        time: chatDoc?.updatedAt,
+      }
 
       const chat = {
         id: chatDoc?._id.toString(),
         chatId: chatDoc?.chatId,
         participants: chatDoc?.participants,
+        lastMessage: lastMsg || null,
       }
 
       const msgDoc = await Message.create({
@@ -297,9 +317,10 @@ export async function getLatestMessage(req: Request, res: Response) {
     const { id } = req.body as { id: string[] };  
 
     const msgDocs = await Message.find({
-      chatId: { $in: id }
+      chatId: { $in: id },
+      $expr: { $lt: [{ $size: "$seenBy" }, 2] }
     }).sort({ createdAt: -1 })
-    .populate("sentBy", "_id name");
+    .populate("sentBy", "_id name")
 
     const messages = msgDocs.reverse().map((m) => {
       return {
@@ -330,13 +351,22 @@ export const getChats = async (req: Request, res: Response) => {
     const chatDocs = await Chat.find({ participants: id })
       .populate("participants", "_id name").sort({ updatedAt: -1 });
 
-    res.status(200).json({
-      chats: chatDocs.map(chat => ({
+    const chats = chatDocs.map(chat => {
+      const lastMsg = {
+        userId: chat?.lastMessage?.userId,
+        text: chat?.lastMessage?.text,
+        time: chat?.updatedAt,
+      }
+
+      return {
         id: chat._id.toString(),
         chatId: chat.chatId,
         participants: chat.participants,
-      }))
+        lastMessage: lastMsg || null
+      }
     });
+
+    res.status(200).json({ chats });
   } catch (err) { 
     console.log('Error in getChats controller', err);
     res.status(500).json({ message: "Internal server error." });
