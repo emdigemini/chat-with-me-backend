@@ -13,10 +13,7 @@ import jwt from "jsonwebtoken";
 
 const app = express();
 app.use(cors({
-  origin: [
-    'https://chat-with-me-dev.vercel.app',
-    'http://localhost:8081',
-  ],
+  origin: process.env.SERVER_URL?.split(","),
   credentials: true,
 }));
 
@@ -32,10 +29,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: [
-      'https://chat-with-me-dev.vercel.app',
-      'http://localhost:8081',
-    ],
+    origin: process.env.SERVER_URL?.split(","),
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -70,12 +64,12 @@ app.get('/', (_, res) => {
   res.json({ status: 'ok', message: 'server is now running...' });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 (async () => {
   try {
     await CONNECT_DB();
-    server.listen(PORT, () => {
+    server.listen(PORT, "0.0.0.0", () => {
       console.log('Database connected successfully!');
       console.log(`\n🚀 Chat server running on http://localhost:${PORT}\n`);
     });
