@@ -51,7 +51,7 @@ function createNewChat(io: Server, socket: Socket) {
       const chatId = participants.sort().join("_");
 
       const isChatExists = await Chat.findOne({ chatId })
-        .populate("participants", "_id name");
+        .populate("participants", "_id name avatar");
 
       
 
@@ -76,7 +76,7 @@ function createNewChat(io: Server, socket: Socket) {
       const newChat = await Chat.create({ chatId, participants, lastMessage: guestId })
 
       const chatDoc = await Chat.findById(newChat._id)
-        .populate("participants", "_id name");
+        .populate("participants", "_id name avatar");
       const chat = {
         id: chatDoc?._id.toString(),
         chatId: chatDoc?.chatId,
@@ -253,7 +253,7 @@ function sendMessage(io: Server, socket: Socket) {
         chatId,
         { lastMessage: latestMessage },
         { returnDocument: 'after' })
-        .populate("participants", "_id name");
+        .populate("participants", "_id name avatar");
 
       const lastMsg = {
         userId: chatDoc?.lastMessage?.userId,
@@ -342,14 +342,15 @@ export async function getLatestMessage(req: Request, res: Response) {
 }
 
 // __________________________________________________________________
-// create new chat and fetch all chats_______________________________
+// wfetch all chats_______________________________
 // __________________________________________________________________
 export const getChats = async (req: Request, res: Response) => {
   try {
     const { id } = req.params as { id: string };
 
     const chatDocs = await Chat.find({ participants: id })
-      .populate("participants", "_id name").sort({ updatedAt: -1 });
+      .populate("participants", "_id name avatar")
+      .sort({ updatedAt: -1 });
 
     const chats = chatDocs.map(chat => {
       const lastMsg = {
